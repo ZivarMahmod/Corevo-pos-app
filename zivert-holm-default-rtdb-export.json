@@ -1,0 +1,383 @@
+{
+  "bubblainställningar": {
+    "textRad1": "Nu funkar den faktiskt!",
+    "textRad2": "Tryck & spara 5 kr 🎉",
+    "visaBubbla": true
+  },
+  "erbjudanden": [
+    {
+      "desc": "Köp båda för 40 kr — spara 5 kr",
+      "paketpris": 40,
+      "price": "40 kr",
+      "produkter": [
+        {
+          "antal": 1,
+          "namn": "Nocco",
+          "produktId": "nocco"
+        },
+        {
+          "antal": 1,
+          "namn": "Proteinbar",
+          "produktId": "proteinbar"
+        }
+      ],
+      "title": "Nocco + Proteinbar",
+      "type": "VECKANS DEAL",
+      "visaKnapp": true
+    }
+  ],
+  "installningar": {
+    "password": "123456"
+  },
+  "kvitton": {
+    "0": {
+      "datum": "2026-03-18",
+      "id": "0001",
+      "items": [
+        {
+          "categoryKey": "mat",
+          "categoryTitle": "Mat",
+          "itemId": "billys-veggie",
+          "name": "Billys Pan Pizza Veggie",
+          "price": 25,
+          "qty": 1,
+          "sum": 25,
+          "ärErbjudande": false
+        }
+      ],
+      "status": "registrerad",
+      "tagType": "TEST",
+      "tagged": true,
+      "tid": "21:19",
+      "time": "2026-03-18T20:19:05.149Z",
+      "total": 25
+    },
+    "ZH-2026-0002": {
+      "betalning": "Swish",
+      "datum": "2026-03-18",
+      "kvittoNummer": "ZH-2026-0002",
+      "produkter": [
+        {
+          "antal": 1,
+          "namn": "Billys Pan Pizza Hawaii",
+          "prisStyck": 25,
+          "prisTotal": 25
+        }
+      ],
+      "status": "ej_registrerad",
+      "tid": "21:27",
+      "totalSumma": 25
+    }
+  },
+  "lager": {
+    "Arla Proteinpudding": {
+      "lager": 0,
+      "stock": 0
+    },
+    "Billys Pan Pizza Hawaii": {
+      "lager": 0,
+      "stock": 0
+    },
+    "Billys Pan Pizza Original": {
+      "lager": 0,
+      "stock": 0
+    },
+    "Billys Pan Pizza Veggie": {
+      "lager": 0,
+      "stock": 0
+    },
+    "Bonaqua": {
+      "lager": 0,
+      "stock": 0
+    },
+    "Celsius": {
+      "lager": 0,
+      "stock": 0
+    },
+    "Coca-Cola Zero": {
+      "lager": 0,
+      "stock": 0
+    },
+    "Corny Big": {
+      "lager": 0,
+      "stock": 0
+    },
+    "Delicatoboll": {
+      "lager": 0,
+      "stock": 0
+    },
+    "Fanta Orange": {
+      "lager": 0,
+      "stock": 0
+    },
+    "Flapjack": {
+      "lager": 0,
+      "stock": 0
+    },
+    "Kexchoklad": {
+      "lager": 0,
+      "stock": 0
+    },
+    "Löfbergs Ice": {
+      "lager": 0,
+      "stock": 0
+    },
+    "Monster Energy": {
+      "lager": 0,
+      "stock": 0
+    },
+    "Nocco": {
+      "lager": 0,
+      "stock": 0
+    },
+    "Nudlar": {
+      "lager": 0,
+      "stock": 0
+    },
+    "Pepsi Max": {
+      "lager": 0,
+      "stock": 0
+    },
+    "Pringles": {
+      "lager": 0,
+      "stock": 0
+    },
+    "Proteinbar": {
+      "lager": 0,
+      "stock": 0
+    },
+    "Punschrulle": {
+      "lager": 0,
+      "stock": 0
+    },
+    "Red Bull": {
+      "lager": 0,
+      "stock": 0
+    },
+    "Risifrutti": {
+      "lager": 0,
+      "stock": 0
+    },
+    "Sportlunch Dubbel": {
+      "lager": 0,
+      "stock": 0
+    },
+    "Svenska Lantchips": {
+      "lager": 0,
+      "stock": 0
+    },
+    "Trocadero": {
+      "lager": 0,
+      "stock": 0
+    }
+  },
+  "onskningar": [
+    {
+      "category": "Dryck",
+      "text": "Kan du få in Nocco päron?",
+      "time": "2026-03-17T12:32:15.985Z"
+    }
+  ],
+  "produkter": [
+    {
+      "items": [
+        {
+          "id": "coca-cola-zero",
+          "name": "Coca-Cola Zero",
+          "price": 15
+        },
+        {
+          "id": "pepsi-max",
+          "name": "Pepsi Max",
+          "price": 15
+        },
+        {
+          "id": "fanta-orange",
+          "name": "Fanta Orange",
+          "price": 15
+        },
+        {
+          "id": "trocadero",
+          "name": "Trocadero",
+          "price": 15
+        },
+        {
+          "id": "bonaqua",
+          "name": "Bonaqua",
+          "price": 15
+        },
+        {
+          "id": "red-bull",
+          "name": "Red Bull",
+          "price": 22
+        },
+        {
+          "id": "celsius",
+          "name": "Celsius",
+          "price": 25
+        },
+        {
+          "id": "monster",
+          "name": "Monster Energy",
+          "price": 22
+        },
+        {
+          "id": "lofbergs",
+          "name": "Löfbergs Ice",
+          "price": 30
+        },
+        {
+          "id": "nocco",
+          "name": "Nocco",
+          "price": 25
+        }
+      ],
+      "key": "dryck",
+      "subtitle": "Dryck, energi & kaffe",
+      "title": "Dryck"
+    },
+    {
+      "items": [
+        {
+          "id": "kexchoklad",
+          "name": "Kexchoklad",
+          "price": 15
+        },
+        {
+          "id": "sportlunch",
+          "name": "Sportlunch Dubbel",
+          "price": 18
+        },
+        {
+          "id": "pringles",
+          "name": "Pringles",
+          "price": 18
+        },
+        {
+          "id": "lantchips",
+          "name": "Svenska Lantchips",
+          "price": 20
+        },
+        {
+          "id": "flapjack",
+          "name": "Flapjack",
+          "price": 18
+        },
+        {
+          "id": "corny",
+          "name": "Corny Big",
+          "price": 15
+        },
+        {
+          "id": "punschrulle",
+          "name": "Punschrulle",
+          "price": 12
+        },
+        {
+          "id": "delicatoboll",
+          "name": "Delicatoboll",
+          "price": 12
+        }
+      ],
+      "key": "snacks",
+      "subtitle": "Snacks, choklad & bars",
+      "title": "Snacks"
+    },
+    {
+      "items": [
+        {
+          "id": "risifrutti",
+          "name": "Risifrutti",
+          "price": 18
+        },
+        {
+          "id": "arla-pudding",
+          "name": "Arla Proteinpudding",
+          "price": 18
+        },
+        {
+          "id": "proteinbar",
+          "name": "Proteinbar",
+          "price": 20
+        }
+      ],
+      "key": "mellanmal",
+      "subtitle": "Snabbt och enkelt",
+      "title": "Mellanmål"
+    },
+    {
+      "items": [
+        {
+          "id": "billys-original",
+          "name": "Billys Pan Pizza Original",
+          "price": 25
+        },
+        {
+          "id": "billys-veggie",
+          "name": "Billys Pan Pizza Veggie",
+          "price": 25
+        },
+        {
+          "id": "billys-hawaii",
+          "name": "Billys Pan Pizza Hawaii",
+          "price": 25
+        },
+        {
+          "id": "nudlar",
+          "name": "Nudlar",
+          "price": 20
+        }
+      ],
+      "key": "mat",
+      "subtitle": "Fryst men snabbt (FINNS I 4B)",
+      "title": "Mat"
+    }
+  ],
+  "rapport": [
+    {
+      "items": [
+        {
+          "categoryKey": "mat",
+          "categoryTitle": "Mat",
+          "itemId": "billys-veggie",
+          "name": "Billys Pan Pizza Veggie",
+          "price": 25,
+          "qty": 1,
+          "ärErbjudande": false
+        }
+      ],
+      "time": "2026-03-18T20:23:11.399Z",
+      "total": 25
+    }
+  ],
+  "receiptCounter": 41,
+  "taggar": [
+    {
+      "bg": "rgba(255,180,0,.2)",
+      "border": "rgba(255,180,0,.3)",
+      "color": "#ffd966",
+      "emoji": "🧪",
+      "id": "TEST",
+      "label": "TEST"
+    },
+    {
+      "bg": "rgba(108,99,255,.15)",
+      "border": "rgba(108,99,255,.3)",
+      "color": "#a78bfa",
+      "emoji": "🏠",
+      "id": "EGET_BRUK",
+      "label": "Eget bruk"
+    },
+    {
+      "bg": "rgba(100,200,100,.15)",
+      "border": "rgba(100,200,100,.3)",
+      "color": "#86efac",
+      "emoji": "💰",
+      "id": "UTLAGG_FORBRUKAT",
+      "label": "Utlägg förbrukat"
+    }
+  ],
+  "valjKnappInstallningar": {
+    "visaValjKnapp": true
+  }
+}
