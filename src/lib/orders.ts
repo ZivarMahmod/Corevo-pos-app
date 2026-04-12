@@ -32,16 +32,18 @@ export interface Order extends CreateOrderPayload {
  * Tries server-side RPC first (atomic counter), falls back to local storage.
  */
 export async function generateReceiptNumber(kioskId: string): Promise<string> {
-  // Try server-side RPC (available after migration 016)
-  const { data, error } = await supabase.rpc('next_receipt_number', {
-    p_kiosk_id: kioskId,
-  })
+  const today = new Date().toISOString().slice(0, 10).replace(/-/g, '')
 
-  if (!error && data) return data as string
+  // Try server-side RPC if we have a valid kiosk ID
+  if (kioskId && kioskId.length > 10) {
+    const { data, error } = await supabase.rpc('next_receipt_number', {
+      p_kiosk_id: kioskId,
+    })
+    if (!error && data) return data as string
+  }
 
   // Fallback: local counter per kiosk per day
-  const today = new Date().toISOString().slice(0, 10).replace(/-/g, '')
-  const key = `corevo:receipt:${kioskId}:${today}`
+  const key = `corevo:receipt:${kioskId || 'unknown'}:${today}`
   const current = await getItem<number>(key)
   const next = (current ?? 0) + 1
   await setItem(key, next)
