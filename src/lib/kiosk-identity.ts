@@ -30,103 +30,138 @@ export interface KioskState {
   name: string
   adminPin: string | null
   swishNumber: string | null
+  authEmail: string
+  authPassword: string
   tenant: TenantConfig
 }
 
+function mapTenantConfig(tenant: Record<string, unknown>): TenantConfig {
+  return {
+    id: tenant.id as string,
+    name: tenant.name as string,
+    swish_enabled: (tenant.swish_enabled as boolean) ?? false,
+    swish_number: (tenant.swish_number as string) ?? null,
+    swish_test_mode: (tenant.swish_test_mode as boolean) ?? null,
+    terminal_enabled: (tenant.terminal_enabled as boolean) ?? false,
+    terminal_provider: (tenant.terminal_provider as string) ?? null,
+    terminal_api_key: (tenant.terminal_api_key as string) ?? null,
+    sumup_test_mode: (tenant.sumup_test_mode as boolean) ?? null,
+    kiosk_primary_color: (tenant.kiosk_primary_color as string) ?? null,
+    kiosk_accent_color: (tenant.kiosk_accent_color as string) ?? null,
+    kiosk_logo_emoji: (tenant.kiosk_logo_emoji as string) ?? null,
+    kiosk_logo_image: (tenant.kiosk_logo_image as string) ?? null,
+    kiosk_club_name: (tenant.kiosk_club_name as string) ?? null,
+    kiosk_welcome_text: (tenant.kiosk_welcome_text as string) ?? null,
+    kiosk_idle_timeout: (tenant.kiosk_idle_timeout as number) ?? null,
+    kiosk_idle_message: (tenant.kiosk_idle_message as string) ?? null,
+    kiosk_columns: (tenant.kiosk_columns as number) ?? null,
+  }
+}
+
+/**
+ * Activate kiosk via RPC (SECURITY DEFINER, callable as anon).
+ * Creates kiosk + auth user in one atomic DB call, then signs in.
+ */
 export async function activateKiosk(
   licenseKey: string,
   name: string
 ): Promise<KioskState> {
-  // Step 1: Find the license
-  const { data: license, error: licenseError } = await supabase
-    .from('licenses')
-    .select('*')
-    .eq('license_key', licenseKey)
-    .in('status', ['active', 'trial'])
-    .single()
+  // Step 1: Call activation RPC (runs as anon, SECURITY DEFINER in DB)
+  const { data, error } = await supabase.rpc('activate_kiosk_with_auth', {
+    p_license_key: licenseKey,
+    p_name: name,
+    p_device_info: {
+      platform: 'android',
+      userAgent: navigator.userAgent,
+      timestamp: new Date().toISOString(),
+    },
+  })
 
-  if (licenseError || !license) {
-    throw new Error('Ogiltig eller inaktiv licensnyckel')
+  if (error) throw new Error(error.message)
+
+  const result = data as {
+    kiosk_id: string
+    tenant_id: string
+    email: string
+    password: string
+    user_id: string
   }
 
-  // Step 2: Check device limit
-  const { count } = await supabase
-    .from('kiosks')
-    .select('*', { count: 'exact', head: true })
-    .eq('license_key', licenseKey)
-    .eq('status', 'active')
+  // Step 2: Sign in with the credentials returned by the RPC
+  const { error: authError } = await supabase.auth.signInWithPassword({
+    email: result.email,
+    password: result.password,
+  })
 
-  if (count !== null && count >= (license.max_devices ?? 1)) {
-    throw new Error(`Enhetsgränsen nådd (${count} av ${license.max_devices} enheter)`)
-  }
+  if (authError) throw new Error(authError.message)
 
-  // Step 3: Create the kiosk
-  const deviceInfo = {
-    platform: 'android',
-    userAgent: navigator.userAgent,
-    timestamp: new Date().toISOString(),
-  }
-
-  const { data: kiosk, error: kioskError } = await supabase
-    .from('kiosks')
-    .insert({
-      tenant_id: license.tenant_id,
-      name,
-      license_key: licenseKey,
-      status: 'active',
-      device_info: deviceInfo,
-      last_seen: new Date().toISOString(),
-    })
-    .select('*')
-    .single()
-
-  if (kioskError) throw new Error(kioskError.message)
-
-  // Step 4: Fetch tenant data
+  // Step 3: Now authenticated with role=kiosk — fetch tenant data
   const { data: tenant, error: tenantError } = await supabase
     .from('tenants')
     .select('*')
-    .eq('id', license.tenant_id)
+    .eq('id', result.tenant_id)
     .single()
 
-  if (tenantError) throw new Error(tenantError.message)
+  if (tenantError || !tenant) throw new Error('Kunde inte hämta kunddata')
 
+  // Step 4: Fetch kiosk details (admin_pin, swish_number override)
+  const { data: kiosk } = await supabase
+    .from('kiosks')
+    .select('admin_pin, swish_number')
+    .eq('id', result.kiosk_id)
+    .single()
+
+  // Step 5: Cache everything including auth credentials for re-login
   const state: KioskState = {
-    kioskId: kiosk.id,
-    tenantId: kiosk.tenant_id,
-    name: kiosk.name,
-    adminPin: kiosk.admin_pin,
-    swishNumber: kiosk.swish_number ?? tenant.swish_number,
-    tenant: {
-      id: tenant.id,
-      name: tenant.name,
-      swish_enabled: tenant.swish_enabled ?? false,
-      swish_number: tenant.swish_number ?? null,
-      swish_test_mode: tenant.swish_test_mode ?? null,
-      terminal_enabled: tenant.terminal_enabled ?? false,
-      terminal_provider: tenant.terminal_provider ?? null,
-      terminal_api_key: tenant.terminal_api_key ?? null,
-      sumup_test_mode: tenant.sumup_test_mode ?? null,
-      kiosk_primary_color: tenant.kiosk_primary_color ?? null,
-      kiosk_accent_color: tenant.kiosk_accent_color ?? null,
-      kiosk_logo_emoji: tenant.kiosk_logo_emoji ?? null,
-      kiosk_logo_image: tenant.kiosk_logo_image ?? null,
-      kiosk_club_name: tenant.kiosk_club_name ?? null,
-      kiosk_welcome_text: tenant.kiosk_welcome_text ?? null,
-      kiosk_idle_timeout: tenant.kiosk_idle_timeout ?? null,
-      kiosk_idle_message: tenant.kiosk_idle_message ?? null,
-      kiosk_columns: tenant.kiosk_columns ?? null,
-    },
+    kioskId: result.kiosk_id,
+    tenantId: result.tenant_id,
+    name,
+    adminPin: kiosk?.admin_pin ?? null,
+    swishNumber: kiosk?.swish_number ?? tenant.swish_number ?? null,
+    authEmail: result.email,
+    authPassword: result.password,
+    tenant: mapTenantConfig(tenant),
   }
 
   await setItem(STORAGE_KEY, state)
   return state
 }
 
+/**
+ * Load cached kiosk and re-authenticate.
+ * If cached credentials exist, signs in with Supabase Auth.
+ * Returns null if no cached kiosk or auth fails.
+ */
 export async function getCachedKiosk(): Promise<KioskState | null> {
-  return getItem<KioskState>(STORAGE_KEY)
+  const cached = await getItem<KioskState>(STORAGE_KEY)
+  if (!cached) return null
+
+  // Re-authenticate using cached credentials
+  if (cached.authEmail && cached.authPassword) {
+    const { data: session } = await supabase.auth.getSession()
+
+    // Only sign in if there's no active session
+    if (!session?.session) {
+      const { error } = await supabase.auth.signInWithPassword({
+        email: cached.authEmail,
+        password: cached.authPassword,
+      })
+
+      if (error) {
+        console.error('[kiosk] Re-auth failed:', error.message)
+        // Credentials invalid — force re-activation
+        await removeItem(STORAGE_KEY)
+        return null
+      }
+    }
+  }
+
+  return cached
 }
 
+/**
+ * Refresh kiosk data from DB (requires active auth session).
+ */
 export async function refreshKioskData(): Promise<KioskState | null> {
   const cached = await getCachedKiosk()
   if (!cached) return null
@@ -152,26 +187,9 @@ export async function refreshKioskData(): Promise<KioskState | null> {
       name: kiosk.name,
       adminPin: kiosk.admin_pin,
       swishNumber: kiosk.swish_number ?? tenant.swish_number,
-      tenant: {
-        id: tenant.id,
-        name: tenant.name,
-        swish_enabled: tenant.swish_enabled ?? false,
-        swish_number: tenant.swish_number ?? null,
-        swish_test_mode: tenant.swish_test_mode ?? null,
-        terminal_enabled: tenant.terminal_enabled ?? false,
-        terminal_provider: tenant.terminal_provider ?? null,
-        terminal_api_key: tenant.terminal_api_key ?? null,
-        sumup_test_mode: tenant.sumup_test_mode ?? null,
-        kiosk_primary_color: tenant.kiosk_primary_color ?? null,
-        kiosk_accent_color: tenant.kiosk_accent_color ?? null,
-        kiosk_logo_emoji: tenant.kiosk_logo_emoji ?? null,
-        kiosk_logo_image: tenant.kiosk_logo_image ?? null,
-        kiosk_club_name: tenant.kiosk_club_name ?? null,
-        kiosk_welcome_text: tenant.kiosk_welcome_text ?? null,
-        kiosk_idle_timeout: tenant.kiosk_idle_timeout ?? null,
-        kiosk_idle_message: tenant.kiosk_idle_message ?? null,
-        kiosk_columns: tenant.kiosk_columns ?? null,
-      },
+      authEmail: cached.authEmail,
+      authPassword: cached.authPassword,
+      tenant: mapTenantConfig(tenant),
     }
 
     await setItem(STORAGE_KEY, updated)
@@ -181,7 +199,11 @@ export async function refreshKioskData(): Promise<KioskState | null> {
   }
 }
 
+/**
+ * Deactivate: sign out of Supabase Auth + clear local cache.
+ */
 export async function clearKiosk(): Promise<void> {
+  await supabase.auth.signOut()
   await removeItem(STORAGE_KEY)
 }
 

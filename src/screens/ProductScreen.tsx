@@ -17,7 +17,7 @@ export default function ProductScreen() {
   const payment = usePayment(kiosk?.tenantId ?? '', kiosk?.kioskId ?? '')
   const [activeCategory, setActiveCategory] = useState<string | null>(null)
 
-  const idleTimeout = (kiosk?.tenant.kiosk_idle_timeout ?? 60) * 1000
+  const idleTimeout = (kiosk?.tenant.kiosk_idle_timeout || 120) * 1000
   useIdleTimer(idleTimeout, () => {
     cart.clearCart()
     navigate('/')

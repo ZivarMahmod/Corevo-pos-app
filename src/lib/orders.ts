@@ -29,16 +29,22 @@ export interface Order extends CreateOrderPayload {
 
 /**
  * Generate a gapless receipt number: YYYYMMDD-NNNN
- * Stored per kiosk per day in Capacitor Preferences.
+ * Tries server-side RPC first (atomic counter), falls back to local storage.
  */
 export async function generateReceiptNumber(kioskId: string): Promise<string> {
+  // Try server-side RPC (available after migration 016)
+  const { data, error } = await supabase.rpc('next_receipt_number', {
+    p_kiosk_id: kioskId,
+  })
+
+  if (!error && data) return data as string
+
+  // Fallback: local counter per kiosk per day
   const today = new Date().toISOString().slice(0, 10).replace(/-/g, '')
   const key = `corevo:receipt:${kioskId}:${today}`
-
   const current = await getItem<number>(key)
   const next = (current ?? 0) + 1
   await setItem(key, next)
-
   return `${today}-${String(next).padStart(4, '0')}`
 }
 
@@ -78,9 +84,8 @@ export async function createOrder(order: CreateOrderPayload): Promise<Order> {
     order_id: data.id,
     product_id: item.product_id,
     name: item.name,
-    quantity: item.quantity,
+    qty: item.quantity,
     price: item.price,
-    vat_rate: item.vat_rate,
   }))
 
   const { error: itemsError } = await supabase
