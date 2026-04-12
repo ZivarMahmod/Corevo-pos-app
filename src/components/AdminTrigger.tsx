@@ -1,21 +1,17 @@
 import { useNavigate } from 'react-router-dom'
 
-/**
- * Day 1: visible gear icon button in top-center.
- * Future: hidden 5-second hold in corner.
- */
 export default function AdminTrigger() {
   const navigate = useNavigate()
 
   return (
     <button
       onClick={() => navigate('/admin')}
-      className="absolute top-4 left-1/2 -translate-x-1/2 flex h-12 w-12 items-center justify-center rounded-full bg-white/10 text-white/50 backdrop-blur-sm transition hover:bg-white/20 active:scale-90"
+      className="absolute top-4 left-1/2 -translate-x-1/2 flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-white/10 transition active:scale-90"
       aria-label="Admin"
     >
       <svg
-        width="20"
-        height="20"
+        width="18"
+        height="18"
         viewBox="0 0 24 24"
         fill="none"
         stroke="currentColor"

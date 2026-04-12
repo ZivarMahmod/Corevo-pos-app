@@ -24,7 +24,7 @@ export function usePayment(tenantId: string, kioskId: string) {
   ) => {
     try {
       setState('processing')
-      const receiptNumber = await generateReceiptNumber(kioskId)
+      const receiptNumber = await generateReceiptNumber(tenantId, kioskId)
 
       const orderPayload = {
         tenant_id: tenantId,
@@ -77,7 +77,7 @@ export function usePayment(tenantId: string, kioskId: string) {
   ) => {
     try {
       setState('processing')
-      const receiptNumber = await generateReceiptNumber(kioskId)
+      const receiptNumber = await generateReceiptNumber(tenantId, kioskId)
 
       const orderPayload = {
         tenant_id: tenantId,

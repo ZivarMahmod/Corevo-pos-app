@@ -34,11 +34,12 @@ export default function AdminLogin() {
   }
 
   return (
-    <div className="flex h-full flex-col items-center justify-center bg-gray-50">
-      <h1 className="mb-8 text-2xl font-bold">Admin</h1>
+    <div className="flex h-full flex-col items-center justify-center bg-bg">
+      <h1 className="mb-2 text-3xl font-extrabold text-text">Admin</h1>
+      <p className="mb-8 text-muted">Ange PIN för att fortsätta</p>
 
       {error && (
-        <div className="mb-6 rounded-xl bg-red-50 px-6 py-3 text-center text-sm text-danger">
+        <div className="animate-shake mb-6 rounded-xl bg-red-50 px-6 py-3 text-center text-sm font-medium text-danger">
           {error}
         </div>
       )}
@@ -54,7 +55,7 @@ export default function AdminLogin() {
 
       <button
         onClick={() => navigate('/')}
-        className="mt-8 text-muted hover:underline"
+        className="mt-10 text-sm text-muted active:opacity-70"
       >
         Tillbaka till kiosken
       </button>

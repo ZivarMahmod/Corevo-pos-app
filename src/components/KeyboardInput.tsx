@@ -28,22 +28,28 @@ export default function KeyboardInput({
   const keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '', '0', 'backspace']
 
   return (
-    <div className="flex flex-col items-center gap-6">
+    <div className="flex flex-col items-center gap-8">
       {/* Label */}
-      <p className="text-lg text-muted">{label}</p>
+      <p className="text-lg font-medium text-muted">{label}</p>
 
-      {/* Display */}
-      <div className="flex gap-3">
+      {/* PIN dots */}
+      <div className="flex gap-4">
         {Array.from({ length: maxLength }, (_, i) => (
           <div
             key={i}
-            className={`flex h-14 w-14 items-center justify-center rounded-xl border-2 text-2xl font-bold transition-colors ${
+            className={`flex h-14 w-14 items-center justify-center rounded-2xl border-2 transition-all duration-200 ${
               i < value.length
-                ? 'border-primary bg-primary-light'
+                ? 'border-primary bg-primary'
                 : 'border-gray-200 bg-white'
             }`}
           >
-            {i < value.length ? (masked ? '●' : value[i]) : ''}
+            {i < value.length ? (
+              masked ? (
+                <div className="h-3 w-3 rounded-full bg-white" />
+              ) : (
+                <span className="text-xl font-bold text-white">{value[i]}</span>
+              )
+            ) : null}
           </div>
         ))}
       </div>
@@ -56,7 +62,8 @@ export default function KeyboardInput({
             <button
               key={i}
               onClick={() => handleKey(key)}
-              className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white text-xl font-semibold shadow-sm border border-gray-200 transition active:bg-gray-100 active:scale-95"
+              className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white text-xl font-semibold shadow-[0_2px_8px_rgba(0,0,0,0.06)] border border-black/[0.06] transition active:bg-gray-100 active:scale-95"
+              style={{ willChange: 'transform' }}
             >
               {key === 'backspace' ? '⌫' : key}
             </button>
@@ -68,7 +75,8 @@ export default function KeyboardInput({
       <button
         onClick={onSubmit}
         disabled={value.length === 0}
-        className="mt-2 rounded-xl bg-primary px-12 py-4 text-lg font-semibold text-white transition active:scale-95 disabled:opacity-40"
+        className="rounded-full bg-primary px-14 py-4 text-lg font-bold text-white shadow-[0_4px_16px_rgba(45,107,90,0.3)] transition active:scale-95 disabled:opacity-40"
+        style={{ willChange: 'transform' }}
       >
         OK
       </button>

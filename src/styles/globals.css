@@ -6,6 +6,7 @@
   --color-secondary: #d4a574;
   --color-accent: #f5a623;
   --color-bg: #fafafa;
+  --color-surface: #ffffff;
   --color-text: #1a1a1a;
   --color-muted: #6b7280;
   --color-danger: #dc2626;
@@ -21,7 +22,7 @@ html, body, #root {
   overflow: hidden;
   background-color: var(--color-bg);
   color: var(--color-text);
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -44,30 +45,43 @@ input, textarea {
   user-select: text;
 }
 
-/* Touch feedback */
-.touch-active {
-  transition: transform 0.1s ease;
+/* Scrollbar hidden for kiosk */
+::-webkit-scrollbar {
+  display: none;
 }
-.touch-active:active {
-  transform: scale(0.96);
+* {
+  scrollbar-width: none;
 }
 
-/* Pulse animation for idle screen */
+/* ── Animations ── */
+
+/* Idle screen pulse */
 @keyframes pulse-slow {
-  0%, 100% { opacity: 0.6; }
+  0%, 100% { opacity: 0.4; }
   50% { opacity: 1; }
 }
 .animate-pulse-slow {
   animation: pulse-slow 2.5s ease-in-out infinite;
 }
 
-/* Scale-in animation for thank you */
+/* Idle screen logo float */
+@keyframes float {
+  0%, 100% { transform: translateY(0) translateZ(0); }
+  50% { transform: translateY(-8px) translateZ(0); }
+}
+.animate-float {
+  animation: float 4s ease-in-out infinite;
+  will-change: transform;
+}
+
+/* Scale-in with bounce (thank you checkmark) */
 @keyframes scale-in {
   0% { transform: scale(0); opacity: 0; }
+  60% { transform: scale(1.15); opacity: 1; }
   100% { transform: scale(1); opacity: 1; }
 }
 .animate-scale-in {
-  animation: scale-in 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+  animation: scale-in 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
 }
 
 /* NFC pulse rings */
@@ -79,10 +93,88 @@ input, textarea {
   animation: nfc-pulse 2s ease-out infinite;
 }
 
-/* Scrollbar hidden for kiosk */
-::-webkit-scrollbar {
-  display: none;
+/* Swish overlay slide-in */
+@keyframes slide-up {
+  0% { transform: translateY(30px) translateZ(0); opacity: 0; }
+  100% { transform: translateY(0) translateZ(0); opacity: 1; }
 }
-* {
-  scrollbar-width: none;
+.animate-slide-up {
+  animation: slide-up 0.3s cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+  will-change: transform, opacity;
+}
+
+/* Fade in (for reminder bubble) */
+@keyframes fade-in {
+  0% { opacity: 0; transform: translateY(8px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in {
+  animation: fade-in 0.4s ease forwards;
+}
+
+/* Countdown pulse */
+@keyframes countdown-tick {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.08); }
+  100% { transform: scale(1); }
+}
+.animate-countdown {
+  animation: countdown-tick 1s ease-in-out infinite;
+  will-change: transform;
+}
+
+/* Error shake */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-8px); }
+  40% { transform: translateX(8px); }
+  60% { transform: translateX(-6px); }
+  80% { transform: translateX(6px); }
+}
+.animate-shake {
+  animation: shake 0.4s ease-in-out;
+}
+
+/* Cart item enter */
+@keyframes cart-enter {
+  0% { transform: translateX(20px); opacity: 0; }
+  100% { transform: translateX(0); opacity: 1; }
+}
+.animate-cart-enter {
+  animation: cart-enter 0.2s ease forwards;
+}
+
+/* Cart drawer slide up */
+@keyframes drawer-up {
+  0% { transform: translateY(100%) translateZ(0); }
+  100% { transform: translateY(0) translateZ(0); }
+}
+.animate-drawer-up {
+  animation: drawer-up 0.3s cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+  will-change: transform;
+}
+
+/* Toast notification */
+@keyframes toast-in {
+  0% { transform: translateY(20px) translateZ(0); opacity: 0; }
+  100% { transform: translateY(0) translateZ(0); opacity: 1; }
+}
+@keyframes toast-out {
+  0% { transform: translateY(0); opacity: 1; }
+  100% { transform: translateY(20px); opacity: 0; }
+}
+.animate-toast-in {
+  animation: toast-in 0.25s ease forwards;
+}
+.animate-toast-out {
+  animation: toast-out 0.25s ease forwards;
+}
+
+/* FAB bounce on new item */
+@keyframes fab-bounce {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.15); }
+}
+.animate-fab-bounce {
+  animation: fab-bounce 0.3s ease;
 }

@@ -31,12 +31,14 @@ export interface Order extends CreateOrderPayload {
  * Generate a gapless receipt number: YYYYMMDD-NNNN
  * Tries server-side RPC first (atomic counter), falls back to local storage.
  */
-export async function generateReceiptNumber(kioskId: string): Promise<string> {
+export async function generateReceiptNumber(tenantId: string, kioskId: string): Promise<string> {
   const today = new Date().toISOString().slice(0, 10).replace(/-/g, '')
 
-  // Try server-side RPC if we have a valid kiosk ID
-  if (kioskId && kioskId.length > 10) {
+  // Try server-side RPC if we have valid IDs
+  if (kioskId && kioskId.length > 10 && tenantId && tenantId.length > 10) {
+    console.log('[receipt] RPC next_receipt_number →', { p_tenant_id: tenantId, p_kiosk_id: kioskId })
     const { data, error } = await supabase.rpc('next_receipt_number', {
+      p_tenant_id: tenantId,
       p_kiosk_id: kioskId,
     })
     if (!error && data) return data as string

@@ -15,18 +15,18 @@ export default function StatusBar({ tenantName }: StatusBarProps) {
   }, [])
 
   return (
-    <div className="flex h-12 items-center justify-between bg-primary px-6 text-white">
-      <div className="text-lg font-semibold">{tenantName}</div>
-      <div className="flex items-center gap-4 text-sm">
-        <span className="flex items-center gap-1.5">
+    <div className="flex h-14 shrink-0 items-center justify-between bg-[#1a1a1a] px-6 text-white">
+      <div className="text-lg font-extrabold tracking-tight">{tenantName}</div>
+      <div className="flex items-center gap-5 text-sm">
+        <span className="flex items-center gap-2">
           <span
             className={`inline-block h-2.5 w-2.5 rounded-full ${
               online ? 'bg-green-400' : 'bg-red-500 animate-pulse'
             }`}
           />
-          {online ? 'Online' : 'Offline'}
+          <span className="text-white/70">{online ? 'Online' : 'Offline'}</span>
         </span>
-        <span className="font-mono">{time}</span>
+        <span className="font-mono text-white/70">{time}</span>
       </div>
     </div>
   )

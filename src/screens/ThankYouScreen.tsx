@@ -15,13 +15,13 @@ export default function ThankYouScreen() {
   return (
     <div className="flex h-full flex-col items-center justify-center bg-white">
       {/* Animated checkmark */}
-      <div className="animate-scale-in mb-8 flex h-28 w-28 items-center justify-center rounded-full bg-green-100">
+      <div className="animate-scale-in mb-10 flex h-[120px] w-[120px] items-center justify-center rounded-full bg-primary-light">
         <svg
           width="56"
           height="56"
           viewBox="0 0 24 24"
           fill="none"
-          stroke="#16a34a"
+          stroke="#2d6b5a"
           strokeWidth="3"
           strokeLinecap="round"
           strokeLinejoin="round"
@@ -30,19 +30,20 @@ export default function ThankYouScreen() {
         </svg>
       </div>
 
-      <h1 className="mb-3 text-4xl font-bold text-text">Tack för ditt köp!</h1>
-      <p className="mb-6 text-xl text-muted">Din betalning är genomförd</p>
+      <h1 className="mb-3 text-4xl font-extrabold text-text">Tack för ditt köp!</h1>
+      <p className="mb-8 text-xl text-muted">Din betalning är genomförd</p>
 
       {receiptNumber && (
-        <div className="mb-8 rounded-xl bg-gray-50 px-6 py-3">
-          <p className="text-sm text-muted">Kvittonummer</p>
-          <p className="text-2xl font-mono font-bold">{receiptNumber}</p>
+        <div className="mb-10 rounded-2xl bg-primary-light px-8 py-5 text-center">
+          <p className="mb-1 text-sm font-medium text-muted">Kvittonummer</p>
+          <p className="font-mono text-2xl font-bold text-primary">{receiptNumber}</p>
         </div>
       )}
 
       <button
         onClick={() => navigate('/')}
-        className="rounded-xl bg-primary px-10 py-4 text-lg font-semibold text-white transition active:scale-95"
+        className="rounded-full bg-primary px-12 py-4 text-lg font-bold text-white shadow-[0_4px_16px_rgba(45,107,90,0.3)] transition active:scale-[0.97]"
+        style={{ willChange: 'transform' }}
       >
         Klar
       </button>

@@ -12,21 +12,15 @@ export default function SwishQR({ swishNumber, amount, message = '' }: SwishQRPr
 
   return (
     <div className="flex flex-col items-center">
-      <div className="rounded-2xl bg-white p-4 shadow-lg">
+      <div className="rounded-2xl bg-white p-5 shadow-[0_4px_20px_rgba(0,0,0,0.08)]">
         <QRCodeSVG
           value={payload}
-          size={220}
+          size={200}
           level="M"
           bgColor="#ffffff"
           fgColor="#000000"
         />
       </div>
-      <p className="mt-4 text-center text-sm text-muted">
-        Skanna med Swish-appen
-      </p>
-      <p className="mt-1 text-center text-xs text-muted">
-        Swish-nummer: {swishNumber}
-      </p>
     </div>
   )
 }
