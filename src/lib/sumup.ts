@@ -1,36 +1,33 @@
-// SumUp Android SDK — kräver APK-byggd app via Expo EAS Build för native NFC.
-// I webbläsare körs alltid testläge-mock. Aktiveras fullt när Elo Edge Connect
-// NFC-adapter är monterad och APK är installerad på Elo I-Series 4.
+/**
+ * SumUp Android SDK wrapper.
+ * In browser/web: only test mode works.
+ * On native Android with SumUp SDK: real NFC payments.
+ */
 
 export interface SumUpResult {
-  success: boolean;
-  transactionCode: string;
-  message: string;
+  success: boolean
+  transactionCode: string
+  message: string
 }
 
-/**
- * Initierar SumUp SDK med kundens API-nyckel.
- * Är en no-op i webbläsarmiljö.
- */
 export function initSumUp(apiKey: string, affiliateKey: string): void {
   if (
-    typeof window !== "undefined" &&
-    (window as Record<string, unknown>).SumUpSDK
+    typeof window !== 'undefined' &&
+    (window as unknown as Record<string, unknown>).SumUpSDK
   ) {
-    const sdk = (window as Record<string, unknown>).SumUpSDK as {
-      init: (config: { apiKey: string; affiliateKey: string }) => void;
-    };
-    sdk.init({ apiKey, affiliateKey });
+    const sdk = (window as unknown as Record<string, unknown>).SumUpSDK as {
+      init: (config: { apiKey: string; affiliateKey: string }) => void
+    }
+    sdk.init({ apiKey, affiliateKey })
   }
-  // No-op i webbläsare utan SDK
 }
 
 /**
- * Startar en betalning via SumUp.
+ * Start a payment via SumUp.
  *
- * - testMode: väntar 2 sek och returnerar mock-success
- * - Native Android med SDK: anropar SumUp SDK
- * - Webbläsare utan testMode: returnerar fel
+ * IMPORTANT: testMode must be checked with === true.
+ * Never use ?? true or !== false — that would activate test mode
+ * when the value is undefined/null.
  */
 export async function startPayment(
   amount: number,
@@ -38,51 +35,47 @@ export async function startPayment(
   title: string,
   testMode: boolean
 ): Promise<SumUpResult> {
-  // Testläge — simulera lyckad betalning efter 2 sekunder
-  if (testMode) {
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-    const code = Math.floor(1000 + Math.random() * 9000);
+  // Test mode — simulate success after 2 seconds
+  if (testMode === true) {
+    await new Promise((resolve) => setTimeout(resolve, 2000))
+    const code = Math.floor(1000 + Math.random() * 9000)
     return {
       success: true,
       transactionCode: `TEST-${code}`,
-      message: "Testbetalning godkänd",
-    };
-  }
-
-  // Native Android med SumUp SDK
-  if (
-    typeof window !== "undefined" &&
-    (window as Record<string, unknown>).SumUpSDK
-  ) {
-    try {
-      const sdk = (window as Record<string, unknown>).SumUpSDK as {
-        pay: (config: {
-          amount: number;
-          currency: string;
-          title: string;
-        }) => Promise<{ transactionCode: string }>;
-      };
-      const result = await sdk.pay({ amount, currency, title });
-      return {
-        success: true,
-        transactionCode: result.transactionCode,
-        message: "Betalning godkänd",
-      };
-    } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message : "Okänt fel vid betalning";
-      return {
-        success: false,
-        transactionCode: "",
-        message,
-      };
+      message: 'Testbetalning godkänd',
     }
   }
 
-  // Webbläsare utan testMode
+  // Native Android with SumUp SDK
+  if (
+    typeof window !== 'undefined' &&
+    (window as unknown as Record<string, unknown>).SumUpSDK
+  ) {
+    try {
+      const sdk = (window as unknown as Record<string, unknown>).SumUpSDK as {
+        pay: (config: {
+          amount: number
+          currency: string
+          title: string
+        }) => Promise<{ transactionCode: string }>
+      }
+      const result = await sdk.pay({ amount, currency, title })
+      return {
+        success: true,
+        transactionCode: result.transactionCode,
+        message: 'Betalning godkänd',
+      }
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : 'Okänt fel vid betalning'
+      return { success: false, transactionCode: '', message }
+    }
+  }
+
+  // Browser without test mode
   return {
     success: false,
-    transactionCode: "",
-    message: "SumUp kräver Android-app",
-  };
+    transactionCode: '',
+    message: 'SumUp kräver Android-app med NFC',
+  }
 }

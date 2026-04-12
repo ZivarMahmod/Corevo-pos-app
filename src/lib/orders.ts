@@ -1,65 +1,126 @@
-import { supabase } from "./supabase";
+import { supabase } from './supabase'
+import { getItem, setItem } from './storage'
 
-export type PaymentMethod = "swish" | "manual" | "scanner" | "card";
+export type PaymentMethod = 'swish' | 'card' | 'cash' | 'manual'
 
 export interface OrderItem {
-  product_id: string;
-  name: string;
-  quantity: number;
-  price: number;
+  product_id: string
+  name: string
+  quantity: number
+  price: number
+  vat_rate: number
 }
 
-export interface Order {
-  id?: string;
-  tenant_id: string;
-  receipt_number: string;
-  items: OrderItem[];
-  total: number;
-  payment_method: PaymentMethod;
-  status: "pending" | "completed" | "cancelled";
-  created_at?: string;
+export interface CreateOrderPayload {
+  tenant_id: string
+  kiosk_id: string
+  receipt_number: string
+  items: OrderItem[]
+  total: number
+  vat: number
+  payment_method: PaymentMethod
+  status: 'pending' | 'completed' | 'cancelled'
 }
 
-export async function createOrder(
-  order: Omit<Order, "id" | "created_at">
-): Promise<Order> {
+export interface Order extends CreateOrderPayload {
+  id: string
+  created_at: string
+}
+
+/**
+ * Generate a gapless receipt number: YYYYMMDD-NNNN
+ * Stored per kiosk per day in Capacitor Preferences.
+ */
+export async function generateReceiptNumber(kioskId: string): Promise<string> {
+  const today = new Date().toISOString().slice(0, 10).replace(/-/g, '')
+  const key = `corevo:receipt:${kioskId}:${today}`
+
+  const current = await getItem<number>(key)
+  const next = (current ?? 0) + 1
+  await setItem(key, next)
+
+  return `${today}-${String(next).padStart(4, '0')}`
+}
+
+/**
+ * Calculate VAT from items (Swedish VAT is inclusive in the price).
+ * Formula: vatAmount = price * qty * (vatRate / (1 + vatRate))
+ */
+export function calculateVat(items: OrderItem[]): number {
+  let totalVat = 0
+  for (const item of items) {
+    const rate = item.vat_rate || 0.25 // Default 25% Swedish VAT
+    const lineTotal = item.price * item.quantity
+    totalVat += lineTotal * (rate / (1 + rate))
+  }
+  return Math.round(totalVat * 100) / 100
+}
+
+export async function createOrder(order: CreateOrderPayload): Promise<Order> {
   const { data, error } = await supabase
-    .from("orders")
-    .insert(order)
+    .from('orders')
+    .insert({
+      tenant_id: order.tenant_id,
+      kiosk_id: order.kiosk_id,
+      receipt_number: order.receipt_number,
+      total: order.total,
+      vat: order.vat,
+      payment_method: order.payment_method,
+      status: order.status,
+    })
     .select()
-    .single();
+    .single()
 
-  if (error) throw error;
-  return data;
+  if (error) throw new Error(error.message)
+
+  // Insert order items
+  const itemRows = order.items.map((item) => ({
+    order_id: data.id,
+    product_id: item.product_id,
+    name: item.name,
+    quantity: item.quantity,
+    price: item.price,
+    vat_rate: item.vat_rate,
+  }))
+
+  const { error: itemsError } = await supabase
+    .from('order_items')
+    .insert(itemRows)
+
+  if (itemsError) {
+    console.error('[orders] Failed to insert order items:', itemsError.message)
+  }
+
+  return { ...order, id: data.id, created_at: data.created_at }
 }
 
 export async function updateOrderStatus(
   orderId: string,
-  status: Order["status"]
+  status: 'pending' | 'completed' | 'cancelled'
 ): Promise<void> {
   const { error } = await supabase
-    .from("orders")
+    .from('orders')
     .update({ status })
-    .eq("id", orderId);
+    .eq('id', orderId)
 
-  if (error) throw error;
+  if (error) throw new Error(error.message)
 }
 
 export async function decrementStock(items: OrderItem[]): Promise<void> {
   for (const item of items) {
-    const { error } = await supabase.rpc("decrement_stock", {
-      p_product_id: item.product_id,
-      p_quantity: item.quantity,
-    });
-    if (error) throw error;
-  }
-}
+    // Read current quantity, then update
+    const { data: product } = await supabase
+      .from('products')
+      .select('quantity')
+      .eq('id', item.product_id)
+      .single()
 
-export function generateReceiptNumber(): string {
-  const now = new Date();
-  const date = now.toISOString().slice(0, 10).replace(/-/g, "");
-  const rand = Math.floor(Math.random() * 10000)
-    .toString()
-    .padStart(4, "0");
-  return `${date}-${rand}`;
+    if (product && product.quantity !== null) {
+      const newQty = Math.max(0, product.quantity - item.quantity)
+      await supabase
+        .from('products')
+        .update({ quantity: newQty })
+        .eq('id', item.product_id)
+    }
+  }
 }
