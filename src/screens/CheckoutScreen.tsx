@@ -13,8 +13,8 @@ export default function CheckoutScreen() {
   const payment = usePayment(kiosk?.tenantId ?? '', kiosk?.kioskId ?? '')
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const method = (location.state as { method?: string })?.method ?? 'swish'
-  const isTestMode = kiosk?.tenant.sumup_test_mode === true
+  const method = (location.state as { method?: string; testMode?: boolean })?.method ?? 'swish'
+  const isTestMode = (location.state as { testMode?: boolean })?.testMode ?? kiosk?.tenant.sumup_test_mode === true
 
   // Auto-timeout for Swish: cancel after 120s
   useEffect(() => {
@@ -48,17 +48,10 @@ export default function CheckoutScreen() {
 
   const swishNumber = kiosk?.swishNumber || kiosk?.tenant.swish_number || ''
 
-  // Swish QR view
+  // Swish QR view (manuellt läge — utan Swish Handel)
   if (method === 'swish' && (payment.state === 'swish-qr' || payment.state === 'processing')) {
     return (
       <div className="flex h-full flex-col items-center justify-center bg-white">
-        {/* Test mode badge */}
-        {kiosk?.tenant.swish_test_mode === true && (
-          <div className="mb-6 rounded-full bg-yellow-100 px-4 py-1.5 text-sm font-semibold text-yellow-800">
-            TESTLÄGE — inga riktiga pengar
-          </div>
-        )}
-
         <h2 className="mb-2 text-3xl font-bold">Betala med Swish</h2>
         <p className="mb-8 text-lg text-muted">Skanna QR-koden med din Swish-app</p>
 

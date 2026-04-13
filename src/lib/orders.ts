@@ -45,11 +45,14 @@ export async function generateReceiptNumber(tenantId: string, kioskId: string): 
   }
 
   // Fallback: local counter per kiosk per day
+  // Prefix with first 4 chars of kioskId so two kiosks offline simultaneously
+  // don't generate the same receipt number (YYYYMMDD-XXXX-NNNN)
+  const kioskPrefix = kioskId ? kioskId.slice(0, 4).toUpperCase() : 'UNK0'
   const key = `corevo:receipt:${kioskId || 'unknown'}:${today}`
   const current = await getItem<number>(key)
   const next = (current ?? 0) + 1
   await setItem(key, next)
-  return `${today}-${String(next).padStart(4, '0')}`
+  return `${today}-${kioskPrefix}-${String(next).padStart(4, '0')}`
 }
 
 /**
@@ -97,7 +100,9 @@ export async function createOrder(order: CreateOrderPayload): Promise<Order> {
     .insert(itemRows)
 
   if (itemsError) {
-    console.error('[orders] Failed to insert order items:', itemsError.message)
+    // Roll back the orphaned order so we don't get orders without items
+    await supabase.from('orders').delete().eq('id', data.id)
+    throw new Error(`Kunde inte spara orderrader: ${itemsError.message}`)
   }
 
   return { ...order, id: data.id, created_at: data.created_at }
@@ -117,19 +122,9 @@ export async function updateOrderStatus(
 
 export async function decrementStock(items: OrderItem[]): Promise<void> {
   for (const item of items) {
-    // Read current quantity, then update
-    const { data: product } = await supabase
-      .from('products')
-      .select('quantity')
-      .eq('id', item.product_id)
-      .single()
-
-    if (product && product.quantity !== null) {
-      const newQty = Math.max(0, product.quantity - item.quantity)
-      await supabase
-        .from('products')
-        .update({ quantity: newQty })
-        .eq('id', item.product_id)
-    }
+    await supabase.rpc('decrement_stock', {
+      p_product_id: item.product_id,
+      p_qty: item.quantity,
+    })
   }
 }

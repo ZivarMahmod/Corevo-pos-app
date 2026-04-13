@@ -11,9 +11,9 @@ export default function AdminLogin() {
   const [attempts, setAttempts] = useState(0)
   const [locked, setLocked] = useState(false)
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (locked) return
-    if (verifyPin(pin)) {
+    if (await verifyPin(pin)) {
       navigate('/admin/dashboard')
     } else {
       const newAttempts = attempts + 1

@@ -4,8 +4,8 @@ import { useKiosk } from '@/hooks/useKiosk'
 import { useProducts, type Product } from '@/hooks/useProducts'
 import { useCart } from '@/hooks/useCart'
 import { useIdleTimer } from '@/hooks/useIdleTimer'
-import { usePayment } from '@/hooks/usePayment'
 import { generateReceiptNumber, createOrder, updateOrderStatus, decrementStock } from '@/lib/orders'
+import { isOnline, queueOrder } from '@/lib/sync'
 import StatusBar from '@/components/StatusBar'
 import ProductCard from '@/components/ProductCard'
 import CartItemComponent from '@/components/CartItem'
@@ -25,7 +25,6 @@ export default function ProductScreen() {
   const { kiosk } = useKiosk()
   const { productsByCategory, uncategorized, categories, isLoading, getActivePrice } = useProducts(kiosk?.tenantId)
   const cart = useCart()
-  const payment = usePayment(kiosk?.tenantId ?? '', kiosk?.kioskId ?? '')
   const [activeCategory, setActiveCategory] = useState<string | null>(null)
   const [cartOpen, setCartOpen] = useState(false)
   const [toast, setToast] = useState<{ name: string; visible: boolean } | null>(null)
@@ -90,8 +89,19 @@ export default function ProductScreen() {
     try {
       setSwishBusy(true)
       const receiptNumber = await generateReceiptNumber(tenantId, kioskId)
-      const order = await createOrder({ tenant_id: tenantId, kiosk_id: kioskId, receipt_number: receiptNumber, items, total, vat, payment_method: 'swish', status: 'pending' })
-      setSwishOrderId(order.id)
+      const orderPayload = { tenant_id: tenantId, kiosk_id: kioskId, receipt_number: receiptNumber, items, total, vat, payment_method: 'swish' as const, status: 'pending' as const }
+
+      const online = await isOnline()
+      let orderId: string | null = null
+      if (online) {
+        const order = await createOrder(orderPayload)
+        orderId = order.id
+      } else {
+        // Offline: queue as completed (manual Swish = trust-based confirmation)
+        await queueOrder({ ...orderPayload, status: 'completed' })
+      }
+
+      setSwishOrderId(orderId)
       setSwishReceipt(receiptNumber)
       setSwishTotal(total)
       setCartOpen(false)
@@ -101,11 +111,14 @@ export default function ProductScreen() {
   }
 
   const handleSwishConfirm = async () => {
-    if (!swishOrderId) return
     try {
       setSwishBusy(true)
-      await updateOrderStatus(swishOrderId, 'completed')
-      await decrementStock(orderItemsRef.current)
+      if (swishOrderId) {
+        // Online path: update order + decrement stock
+        await updateOrderStatus(swishOrderId, 'completed')
+        await decrementStock(orderItemsRef.current)
+      }
+      // Offline path: order already queued as completed, just navigate
       cart.clearCart()
       setShowSwishOverlay(false)
       navigate('/thankyou', { state: { receiptNumber: swishReceipt } })
@@ -113,14 +126,22 @@ export default function ProductScreen() {
     finally { setSwishBusy(false) }
   }
 
-  const handleSwishCancel = () => { setShowSwishOverlay(false) }
+  const handleSwishCancel = async () => {
+    if (swishOrderId) {
+      try {
+        await updateOrderStatus(swishOrderId, 'cancelled')
+      } catch (err) {
+        console.error('[swish] Failed to cancel order:', err)
+      }
+    }
+    setShowSwishOverlay(false)
+  }
 
   const handleCardCheckout = async () => {
     if (cart.items.length === 0) return
     const testMode = kiosk?.tenant.sumup_test_mode === true
-    await payment.startCardPayment(cart.toOrderItems(), cart.total, cart.vatTotal, testMode)
     setCartOpen(false)
-    navigate('/checkout', { state: { method: 'card' } })
+    navigate('/checkout', { state: { method: 'card', testMode } })
   }
 
   const filteredProducts = activeCategory

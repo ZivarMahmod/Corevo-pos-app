@@ -8,6 +8,7 @@ import {
   type KioskState,
 } from '@/lib/kiosk-identity'
 import { startSyncListener } from '@/lib/sync'
+import { useHeartbeat } from '@/hooks/useHeartbeat'
 
 interface KioskContextValue {
   kiosk: KioskState | null
@@ -16,7 +17,7 @@ interface KioskContextValue {
   error: string | null
   activate: (licenseKey: string, name: string) => Promise<void>
   deactivate: () => Promise<void>
-  verifyPin: (pin: string) => boolean
+  verifyPin: (pin: string) => Promise<boolean>
   refresh: () => Promise<void>
 }
 
@@ -26,6 +27,9 @@ export function KioskProvider({ children }: { children: ReactNode }) {
   const [kiosk, setKiosk] = useState<KioskState | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+
+  // Heartbeat — skickar last_seen var 5:e minut
+  useHeartbeat(kiosk?.kioskId, kiosk?.tenantId)
 
   // Load cached kiosk on mount
   useEffect(() => {
@@ -71,7 +75,7 @@ export function KioskProvider({ children }: { children: ReactNode }) {
     setKiosk(null)
   }, [])
 
-  const verifyPin = useCallback((pin: string): boolean => {
+  const verifyPin = useCallback(async (pin: string): Promise<boolean> => {
     if (!kiosk) return false
     return verifyAdminPin(pin, kiosk.adminPin)
   }, [kiosk])
