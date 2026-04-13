@@ -4,24 +4,40 @@ import { supabase } from '@/lib/supabase'
 
 const KIOSK_URL = import.meta.env.VITE_KIOSK_URL || 'https://corevo.se'
 
+function buildKioskUrl(kioskId: string, accessToken: string, refreshToken: string): string {
+  const url = new URL('/kiosk', KIOSK_URL)
+  url.searchParams.set('kiosk', kioskId)
+  url.searchParams.set('mode', 'live')
+  url.searchParams.set('access_token', accessToken)
+  url.searchParams.set('refresh_token', refreshToken)
+  return url.toString()
+}
+
 export default function WebViewScreen() {
   const { kiosk } = useKiosk()
   const [src, setSrc] = useState('')
 
   useEffect(() => {
-    async function buildUrl() {
-      const { data: { session } } = await supabase.auth.getSession()
-      const kioskId = kiosk?.kioskId || ''
+    if (!kiosk) return
+    const kioskId = kiosk.kioskId
 
-      const url = new URL('/kiosk', KIOSK_URL)
-      url.searchParams.set('kiosk', kioskId)
-      url.searchParams.set('mode', 'live')
-      if (session?.access_token) url.searchParams.set('access_token', session.access_token)
-      if (session?.refresh_token) url.searchParams.set('refresh_token', session.refresh_token)
+    // Prenumerera på auth-händelser — bygg URL när sessionen faktiskt finns
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.access_token && session.refresh_token) {
+        setSrc(buildKioskUrl(kioskId, session.access_token, session.refresh_token))
+        subscription.unsubscribe()
+      }
+    })
 
-      setSrc(url.toString())
-    }
-    buildUrl()
+    // Kolla om sessionen redan finns (race: sign-in kan ha hunnit innan prenumerationen)
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.access_token && session.refresh_token) {
+        setSrc(buildKioskUrl(kioskId, session.access_token, session.refresh_token))
+        subscription.unsubscribe()
+      }
+    })
+
+    return () => subscription.unsubscribe()
   }, [kiosk])
 
   if (!src) {
