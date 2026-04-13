@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef } from 'react'
 import { useKiosk } from '@/hooks/useKiosk'
 import { supabase } from '@/lib/supabase'
 
@@ -13,47 +13,61 @@ function buildKioskUrl(kioskId: string, accessToken: string, refreshToken: strin
   return url.toString()
 }
 
+/**
+ * Startar live-kiosken genom att navigera HELA Capacitor-WebView till corevo.se.
+ *
+ * Skillnad mot tidigare iframe-lösning: appen laddar inte längre corevo.se in i ett
+ * underordnat dokument — istället byter hela WebView:ns top-level document till
+ * corevo.se. Det eliminerar:
+ *   - Cloudflares X-Frame-Options: SAMEORIGIN som blockade cross-origin navigation
+ *   - iframe-sandbox som blockade window.location till andra bundles (/tenant mm)
+ *
+ * Aktiverings-React-appen unmountas av browsern när navigationen sker. Tokens +
+ * kiosk-id följer med i URL-params → KioskPreview bootstrappar Supabase-session
+ * från params och kör sedan på corevo.se-origin resten av tiden.
+ *
+ * Återväg: om enheten behöver omaktiveras wipas app-data (`adb shell pm clear se.corevo.pos`)
+ * och Capacitor startar om på den lokala dist/index.html → ActivationScreen.
+ */
 export default function WebViewScreen() {
   const { kiosk } = useKiosk()
-  const [src, setSrc] = useState('')
+  const navigatedRef = useRef(false)
 
   useEffect(() => {
-    if (!kiosk) return
+    if (!kiosk || navigatedRef.current) return
     const kioskId = kiosk.kioskId
 
-    // Prenumerera på auth-händelser — bygg URL när sessionen faktiskt finns
+    const goTo = (accessToken: string, refreshToken: string): void => {
+      if (navigatedRef.current) return
+      navigatedRef.current = true
+      const url = buildKioskUrl(kioskId, accessToken, refreshToken)
+      // DIAG: full URL loggas för felsökning. Syns via `adb logcat | grep kiosk-url`.
+      // eslint-disable-next-line no-console
+      console.info('[kiosk-url]', url)
+      // replace() undviker att /activation-sidan sparas i historik-stacken,
+      // så Android-back-knappen kan inte ta användaren tillbaka hit av misstag.
+      window.location.replace(url)
+    }
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.access_token && session.refresh_token) {
-        setSrc(buildKioskUrl(kioskId, session.access_token, session.refresh_token))
-        subscription.unsubscribe()
+        goTo(session.access_token, session.refresh_token)
       }
     })
 
-    // Kolla om sessionen redan finns (race: sign-in kan ha hunnit innan prenumerationen)
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.access_token && session.refresh_token) {
-        setSrc(buildKioskUrl(kioskId, session.access_token, session.refresh_token))
-        subscription.unsubscribe()
+        goTo(session.access_token, session.refresh_token)
       }
     })
 
     return () => subscription.unsubscribe()
   }, [kiosk])
 
-  if (!src) {
-    return (
-      <div className="flex h-full items-center justify-center bg-primary">
-        <div className="text-2xl font-bold text-white">Startar kiosk...</div>
-      </div>
-    )
-  }
-
+  // Visas medan session/token-hämtning pågår — går över i full corevo.se när goTo() kör.
   return (
-    <iframe
-      src={src}
-      className="h-full w-full border-0"
-      allow="payment; camera; microphone"
-      title="Corevo Kiosk"
-    />
+    <div className="flex h-full items-center justify-center bg-primary">
+      <div className="text-2xl font-bold text-white">Startar kiosk...</div>
+    </div>
   )
 }

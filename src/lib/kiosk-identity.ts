@@ -1,5 +1,41 @@
+import { Device } from '@capacitor/device'
 import { supabase } from './supabase'
 import { getItem, setItem, removeItem } from './storage'
+
+/**
+ * Samla unik enhetsidentitet + hårdvaruinfo.
+ * UUID:n är den viktigaste biten — överlever app-reinstall och är grunden för
+ * upsert-logiken i activate_kiosk RPC (samma uuid → uppdatera befintlig kiosk,
+ * aldrig skapa spök-dubletter).
+ */
+export async function collectDeviceInfo(): Promise<Record<string, unknown>> {
+  try {
+    const id = await Device.getId()
+    const info = await Device.getInfo()
+    return {
+      uuid: id.identifier,
+      model: info.model,
+      manufacturer: info.manufacturer,
+      platform: info.platform,
+      osVersion: `${info.operatingSystem} ${info.osVersion}`,
+      screenWidth: window.screen.width,
+      screenHeight: window.screen.height,
+      userAgent: navigator.userAgent,
+      activatedAt: new Date().toISOString(),
+    }
+  } catch (err) {
+    // Fallback om Capacitor Device-plugin inte är tillgängligt (t.ex. ren web-körning)
+    console.warn('[kiosk-identity] Device plugin ej tillgängligt', err)
+    return {
+      uuid: null,
+      platform: 'web',
+      userAgent: navigator.userAgent,
+      screenWidth: window.screen.width,
+      screenHeight: window.screen.height,
+      activatedAt: new Date().toISOString(),
+    }
+  }
+}
 
 const STORAGE_KEY = 'corevo:kiosk'
 
@@ -66,15 +102,14 @@ export async function activateKiosk(
   licenseKey: string,
   name: string
 ): Promise<KioskState> {
+  // Samla riktig hårdvaruidentitet — UUID är det avgörande fältet för upsert-logiken.
+  const deviceInfo = await collectDeviceInfo()
+
   // Step 1: Call activation RPC (runs as anon, SECURITY DEFINER in DB)
   const { data, error } = await supabase.rpc('activate_kiosk_with_auth', {
     p_license_key: licenseKey,
     p_name: name,
-    p_device_info: {
-      platform: 'android',
-      userAgent: navigator.userAgent,
-      timestamp: new Date().toISOString(),
-    },
+    p_device_info: deviceInfo,
   })
 
   if (error) throw new Error(error.message)
