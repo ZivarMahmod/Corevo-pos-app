@@ -1,17 +1,8 @@
-import { HashRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { KioskProvider, useKiosk } from '@/hooks/useKiosk'
 import ActivationScreen from '@/screens/ActivationScreen'
-import IdleScreen from '@/screens/IdleScreen'
-import ProductScreen from '@/screens/ProductScreen'
-import CheckoutScreen from '@/screens/CheckoutScreen'
-import ThankYouScreen from '@/screens/ThankYouScreen'
-import AdminLogin from '@/admin/AdminLogin'
-import AdminDashboard from '@/admin/AdminDashboard'
-import AdminProducts from '@/admin/AdminProducts'
-import AdminSettings from '@/admin/AdminSettings'
-import AdminReports from '@/admin/AdminReports'
+import WebViewScreen from '@/screens/WebViewScreen'
 
-function AppRoutes() {
+function AppContent() {
   const { isActivated, isLoading } = useKiosk()
 
   if (isLoading) {
@@ -26,28 +17,13 @@ function AppRoutes() {
     return <ActivationScreen />
   }
 
-  return (
-    <Routes>
-      <Route path="/" element={<IdleScreen />} />
-      <Route path="/products" element={<ProductScreen />} />
-      <Route path="/checkout" element={<CheckoutScreen />} />
-      <Route path="/thankyou" element={<ThankYouScreen />} />
-      <Route path="/admin" element={<AdminLogin />} />
-      <Route path="/admin/dashboard" element={<AdminDashboard />} />
-      <Route path="/admin/products" element={<AdminProducts />} />
-      <Route path="/admin/settings" element={<AdminSettings />} />
-      <Route path="/admin/reports" element={<AdminReports />} />
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
-  )
+  return <WebViewScreen />
 }
 
 export default function App() {
   return (
-    <HashRouter>
-      <KioskProvider>
-        <AppRoutes />
-      </KioskProvider>
-    </HashRouter>
+    <KioskProvider>
+      <AppContent />
+    </KioskProvider>
   )
 }

@@ -7,8 +7,6 @@ import {
   verifyAdminPin,
   type KioskState,
 } from '@/lib/kiosk-identity'
-import { startSyncListener } from '@/lib/sync'
-import { useHeartbeat } from '@/hooks/useHeartbeat'
 
 interface KioskContextValue {
   kiosk: KioskState | null
@@ -27,9 +25,6 @@ export function KioskProvider({ children }: { children: ReactNode }) {
   const [kiosk, setKiosk] = useState<KioskState | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-
-  // Heartbeat — skickar last_seen var 5:e minut
-  useHeartbeat(kiosk?.kioskId, kiosk?.tenantId)
 
   // Load cached kiosk on mount
   useEffect(() => {
@@ -51,9 +46,6 @@ export function KioskProvider({ children }: { children: ReactNode }) {
       }
     }
     init()
-
-    // Start sync listener for offline orders
-    startSyncListener()
 
     return () => { mounted = false }
   }, [])
