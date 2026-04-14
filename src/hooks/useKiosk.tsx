@@ -6,6 +6,7 @@ import {
   clearKiosk,
   verifyAdminPin,
   type KioskState,
+  type ActivationStep,
 } from '@/lib/kiosk-identity'
 
 interface KioskContextValue {
@@ -13,6 +14,7 @@ interface KioskContextValue {
   isActivated: boolean
   isLoading: boolean
   error: string | null
+  activationStep: ActivationStep | null
   activate: (licenseKey: string, name: string) => Promise<void>
   deactivate: () => Promise<void>
   verifyPin: (pin: string) => Promise<boolean>
@@ -25,6 +27,7 @@ export function KioskProvider({ children }: { children: ReactNode }) {
   const [kiosk, setKiosk] = useState<KioskState | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [activationStep, setActivationStep] = useState<ActivationStep | null>(null)
 
   // Load cached kiosk on mount
   useEffect(() => {
@@ -52,12 +55,14 @@ export function KioskProvider({ children }: { children: ReactNode }) {
 
   const activate = useCallback(async (licenseKey: string, name: string) => {
     setError(null)
+    setActivationStep(null)
     try {
-      const state = await activateKiosk(licenseKey, name)
+      const state = await activateKiosk(licenseKey, name, (step) => setActivationStep(step))
       setKiosk(state)
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Aktivering misslyckades'
       setError(msg)
+      setActivationStep(null)
       throw err
     }
   }, [])
@@ -84,6 +89,7 @@ export function KioskProvider({ children }: { children: ReactNode }) {
         isActivated: kiosk !== null,
         isLoading,
         error,
+        activationStep,
         activate,
         deactivate,
         verifyPin,

@@ -2,10 +2,24 @@ import { useState } from 'react'
 import { useKiosk } from '@/hooks/useKiosk'
 
 export default function ActivationScreen() {
-  const { activate, error } = useKiosk()
+  const { activate, error, activationStep } = useKiosk()
   const [licenseKey, setLicenseKey] = useState('')
   const [kioskName, setKioskName] = useState('')
   const [loading, setLoading] = useState(false)
+
+  // Vilka steg är färdiga? Varje fas "passeras" när nästa fas visas.
+  const phaseOrder = ['verifying', 'signin', 'tenant', 'kiosk', 'caching', 'done'] as const
+  const currentPhaseIdx = activationStep
+    ? phaseOrder.indexOf(activationStep.phase)
+    : -1
+  const phaseLabels: Record<typeof phaseOrder[number], string> = {
+    verifying: 'Licens',
+    signin: 'Inloggning',
+    tenant: 'Kundinfo',
+    kiosk: 'Kioskprofil',
+    caching: 'Sparar',
+    done: 'Klart',
+  }
 
   const handleActivate = async () => {
     if (!licenseKey.trim() || !kioskName.trim()) return
@@ -77,6 +91,33 @@ export default function ActivationScreen() {
         >
           {loading ? 'Aktiverar...' : 'Aktivera'}
         </button>
+
+        {/* Step-progress — visar varje verifieringssteg så personalen ser
+            att allt görs i tur och ordning istället för att det blinkar förbi. */}
+        {activationStep && (
+          <div className="mt-5 space-y-1.5">
+            <p className="text-sm text-muted text-center">{activationStep.message}</p>
+            <div className="space-y-1">
+              {phaseOrder.map((phase, idx) => {
+                const done = idx < currentPhaseIdx || activationStep.phase === 'done'
+                const active = idx === currentPhaseIdx && activationStep.phase !== 'done'
+                return (
+                  <div
+                    key={phase}
+                    className={`flex items-center gap-2 rounded-lg px-2.5 py-1 text-xs transition ${
+                      done ? 'text-primary' : active ? 'text-foreground' : 'text-muted/50'
+                    }`}
+                  >
+                    <span className="font-mono">
+                      {done ? '✓' : active ? '•' : '◌'}
+                    </span>
+                    <span>{phaseLabels[phase]}</span>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )

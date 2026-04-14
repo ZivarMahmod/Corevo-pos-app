@@ -94,15 +94,36 @@ function mapTenantConfig(tenant: Record<string, unknown>): TenantConfig {
   }
 }
 
+export type ActivationStep =
+  | { phase: 'verifying'; message: string }
+  | { phase: 'signin'; message: string }
+  | { phase: 'tenant'; message: string }
+  | { phase: 'kiosk'; message: string }
+  | { phase: 'caching'; message: string }
+  | { phase: 'done'; message: string }
+
 /**
  * Activate kiosk via RPC (SECURITY DEFINER, callable as anon).
  * Creates kiosk + auth user in one atomic DB call, then signs in.
+ *
+ * onProgress kallas mellan varje steg så UI kan visa status ("Verifierar licens...",
+ * "Loggar in...", osv) istället för att blinka förbi. Varje steg har en kort paus
+ * (180ms) efter lyckad operation — kunden ser att något händer + kassa-personal
+ * hinner läsa vad som verifierats.
  */
 export async function activateKiosk(
   licenseKey: string,
-  name: string
+  name: string,
+  onProgress?: (step: ActivationStep) => void
 ): Promise<KioskState> {
-  // Samla riktig hårdvaruidentitet — UUID är det avgörande fältet för upsert-logiken.
+  const pause = () => new Promise((r) => setTimeout(r, 180))
+  const report = async (step: ActivationStep) => {
+    onProgress?.(step)
+    await pause()
+  }
+
+  await report({ phase: 'verifying', message: 'Verifierar licens...' })
+
   const deviceInfo = await collectDeviceInfo()
 
   // Step 1: Call activation RPC (runs as anon, SECURITY DEFINER in DB)
@@ -122,6 +143,8 @@ export async function activateKiosk(
     user_id: string
   }
 
+  await report({ phase: 'signin', message: 'Licens godkänd — loggar in...' })
+
   // Step 2: Sign in with the credentials returned by the RPC
   const { error: authError } = await supabase.auth.signInWithPassword({
     email: result.email,
@@ -129,6 +152,8 @@ export async function activateKiosk(
   })
 
   if (authError) throw new Error(authError.message)
+
+  await report({ phase: 'tenant', message: 'Inloggad — hämtar kundinfo...' })
 
   // Step 3: Now authenticated with role=kiosk — fetch tenant data
   const { data: tenant, error: tenantError } = await supabase
@@ -139,12 +164,16 @@ export async function activateKiosk(
 
   if (tenantError || !tenant) throw new Error('Kunde inte hämta kunddata')
 
+  await report({ phase: 'kiosk', message: `${tenant.company || tenant.name} — hämtar kioskdetaljer...` })
+
   // Step 4: Fetch kiosk details (admin_pin, swish_number override)
   const { data: kiosk } = await supabase
     .from('kiosks')
     .select('admin_pin, swish_number')
     .eq('id', result.kiosk_id)
     .single()
+
+  await report({ phase: 'caching', message: 'Sparar enhetsprofil...' })
 
   // Step 5: Cache everything including auth credentials for re-login
   const state: KioskState = {
@@ -159,6 +188,7 @@ export async function activateKiosk(
   }
 
   await setItem(STORAGE_KEY, state)
+  await report({ phase: 'done', message: 'Klart — startar kiosk...' })
   return state
 }
 
