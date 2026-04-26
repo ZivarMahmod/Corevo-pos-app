@@ -1,4 +1,4 @@
-# Här Zivar, är du nöjd?
+# Här Zivar, är du nöjd
 
 > Systemrapport efter ultra-dykning av Corevo (huvud-repo `corevo-pos-system` + denna Capacitor-wrapper).
 > Skriven av Claude Code efter 9 parallella Explore-agenter + verifikation mot live-DB.
